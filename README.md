@@ -12,7 +12,7 @@ A production-grade RAG (Retrieval-Augmented Generation) chatbot over 25 SEBI (Se
 - **CRAG pipeline** — each retrieved chunk is graded for relevance; irrelevant chunks are filtered before generation
 - **Hallucination check (Self-RAG)** — the generated answer is graded against source context; confidence is reported as high / medium / low
 - **Regulatory metadata** — documents tagged with audience (Stock Brokers, Mutual Funds, etc.), date, ACTIVE/SUPERSEDED status, and cross-references
-- **25 Master Circulars** — ~2.1M tokens covering Stock Brokers, Mutual Funds, Depositories, Investment Advisers, Research Analysts, REITs, InvITs, CRAs, and more
+- **25 Master Circulars** — ~2.8M tokens covering Stock Brokers, Mutual Funds, Depositories, Investment Advisers, Research Analysts, REITs, InvITs, CRAs, and more
 
 ---
 
@@ -85,51 +85,124 @@ Sebi_Bot/
 
 ---
 
-## Setup
+## How to Run (First Time Setup)
 
-### 1. Clone and create virtual environment
+Follow these steps in order. The full process takes roughly 30–40 minutes on first run (mostly the index build).
+
+---
+
+### Prerequisites
+
+- Python 3.10+
+- Google Chrome (required by the scraper)
+- A free [Google AI Studio API key](https://aistudio.google.com/apikey)
+- ~3 GB of free disk space (PDFs + vector store)
+
+---
+
+### Step 1 — Clone and create virtual environment
 
 ```bash
 git clone <repo-url>
 cd Sebi_Bot
+
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
 ```
 
-### 2. Install dependencies
+### Step 2 — Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Add your API key
+This installs everything needed for both the scraper and the RAG pipeline (Selenium, pdfplumber, LangChain, ChromaDB, sentence-transformers, Streamlit).
 
-Create a `.env` file in the `Sebi_Bot/` directory:
+---
+
+### Step 3 — Add your API key
+
+Create a `.env` file inside `Sebi_Bot/`:
 
 ```
 GOOGLE_API_KEY=your_key_here
 ```
 
-Get a free key at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+Get a free key at [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey). The free tier supports Gemma 3 27B and Gemma 2 27B.
 
-### 4. Add PDFs
+> **Never commit `.env` — it is already in `.gitignore`.**
 
-Place SEBI Master Circular PDFs in `sebi_master_circulars/`. You can use `sebi_downloader.py` (in the repo root) to download them automatically.
+---
 
-### 5. Build the index
+### Step 4 — Download SEBI Master Circulars
+
+Run the scraper from inside `Sebi_Bot/`:
+
+```bash
+python sebi_downloader.py
+```
+
+This uses Selenium + Chrome to navigate the SEBI website, detect PDF links embedded in the PDF.js viewer, and download all available Master Circulars into `sebi_master_circulars/`. It also saves per-file metadata (date, title, circular number) to `sebi_metadata/`.
+
+**What it downloads:** ~25 Master Circulars across all regulated entity types (Stock Brokers, Mutual Funds, Depositories, Investment Advisers, etc.) — approximately 2.1M tokens total.
+
+**Expected runtime:** 5–15 minutes depending on network speed.
+
+#### ⚠️ Known Limitation — Reference Document Downloading
+
+Each SEBI Master Circular cites many other circulars by their circular ID (e.g., `SEBI/HO/MIRSD/2024/...`). The downloader has a `recursive=True` mode that was intended to follow these IDs and download the referenced documents as well (Phase 2).
+
+**This did not work.** SEBI's website uses a dynamic AJAX-based search to look up circulars by ID, which cannot be reliably automated with Selenium — the search endpoint does not return consistent results when called programmatically. As a result, only the top-level Master Circulars are downloaded; the individual circulars they reference are not included in the corpus.
+
+The corpus is therefore limited to the 25 Master Circulars. These are comprehensive consolidation documents (each Master Circular supersedes and incorporates all prior circulars on that topic), so coverage is still broad even without the referenced documents.
+
+---
+
+### Step 5 — Build the RAG index
 
 ```bash
 python build_index.py
 ```
 
-This ingests all PDFs, extracts text and tables, creates parent-child chunks, embeds child chunks, and stores everything in ChromaDB. Takes ~20 minutes on CPU for 25 documents.
+This runs the full ingestion pipeline:
+1. Extracts text and tables from each PDF (pdfplumber, table-aware)
+2. Tags metadata — audience, date, ACTIVE/SUPERSEDED status, cross-references
+3. Creates parent-child chunk pairs (500-token child for retrieval, 2000-token parent for context)
+4. Embeds all child chunks using `all-MiniLM-L6-v2` (runs on CPU)
+5. Stores embeddings in ChromaDB at `chroma_db/`
+6. Saves parent chunks and circular index to `processed_data/`
 
-### 6. Run the app
+**Expected runtime:** ~20 minutes on CPU (7,085 chunks to embed).
+
+You can verify the build succeeded with:
+
+```bash
+python verify_build.py
+```
+
+---
+
+### Step 6 — Run the app
 
 ```bash
 streamlit run app.py
 ```
+
+Opens at `http://localhost:8501`. The sidebar shows the knowledge base stats (total docs, active vs superseded). Type any question about SEBI regulations in the chat input.
+
+---
+
+### Re-running after first setup
+
+Once the index is built, you only need Steps 3 and 6 on subsequent runs:
+
+```bash
+# Activate venv, then:
+streamlit run app.py
+```
+
+The index persists in `chroma_db/` and does not need to be rebuilt unless you add new PDFs.
 
 ---
 
