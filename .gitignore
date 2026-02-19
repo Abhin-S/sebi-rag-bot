@@ -1,0 +1,33 @@
+# API keys & secrets
+.env
+*.key
+
+# Virtual environment
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Downloaded PDFs & metadata (large, user-specific)
+sebi_master_circulars/
+sebi_metadata/
+
+# Generated data (regenerable via build_index.py)
+chroma_db/
+processed_data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
