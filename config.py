@@ -25,7 +25,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 
 # ─── Models ───────────────────────────────────────────────────────────────────
 LLM_MODEL = "gemma-3-27b-it"           # Primary: Gemma 3 via Google AI Studio
-LLM_FALLBACK = "gemini-2.0-flash"      # Fallback if Gemma unavailable
+LLM_FALLBACK = "gemma-2-27b-it"        # Fallback: Gemma 2 via Google AI Studio
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"   # Open-source, runs on CPU
 LLM_TEMPERATURE = 0.1
 

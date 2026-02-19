@@ -72,7 +72,7 @@ def render_sidebar():
         st.markdown("---")
         st.markdown(
             "**Powered by**\n"
-            "- Gemma 3 / Gemini via Google AI\n"
+            "- Gemma 3 / Gemma 2 via Google AI\n"
             "- LangChain + ChromaDB\n"
             "- Sentence Transformers"
         )
