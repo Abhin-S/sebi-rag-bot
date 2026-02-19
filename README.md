@@ -15,7 +15,7 @@ A production-grade RAG (Retrieval-Augmented Generation) chatbot over 25 SEBI (Se
 - **25 Master Circulars** — ~2.8M tokens covering Stock Brokers, Mutual Funds, Depositories, Investment Advisers, Research Analysts, REITs, InvITs, CRAs, and more
 
 ---
-
+`
 ## Architecture
 
 ```
